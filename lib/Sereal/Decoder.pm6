@@ -7,6 +7,8 @@ has Int $!position;
 has Int $!size;
 has Int $!protocol-version;
 has Int $!encoding;
+has Int $!user-header-position;
+has Int $!user-header-size;
 
 # configuration
 has Bool $!refuse-snappy = False;
@@ -26,6 +28,7 @@ method !set-data($blob) {
 method !parse-header() {
     self!check-header();
     self!check-proto-and-flags();
+    self!check-header-suffix();
 }
 
 method !check-header() {
@@ -63,4 +66,36 @@ method !check-proto-and-flags() {
     } elsif $!encoding < 0 || $!encoding > 4 {
         die "Unsupported encoding: unknown";
     }
+}
+
+method !check-header-suffix() {
+    my Int $suffix-size = self!read-varint();
+    my Int $base-position = $!position;
+
+    $!user-header-size = 0;
+    if $suffix-size {
+        my Int $bitfield = $!data[$!position++];
+        if $bitfield +& 1 {
+            # least significant bit is set
+            # <USER-META-DATA> is following
+            $!user-header-position = $!position;
+            $!user-header-size = $suffix-size - 1;
+        }
+    }
+
+    $!position = $base-position + $suffix-size;
+}
+
+method !read-varint(--> Int) {
+    my Int $uv = 0;
+    my Int $lshift = 0;
+
+    my Int $b = $!data[$!position++];
+    while $!position < $!size and $b +& 128 {
+        $uv = $uv +| (($b +& 127) +< $lshift);
+        $b = $!data[$!position++];
+        $lshift += 7;
+    }
+    $uv = $uv +| $b +< $lshift;
+    return $uv;
 }
