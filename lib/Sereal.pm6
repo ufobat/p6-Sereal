@@ -32,5 +32,6 @@ use Sereal::Decoder;
 sub decode_file($file) is export {
     my $data = $file.IO.slurp(:bin);
     my $decoder = Sereal::Decoder.new();
-    $decoder.decode($data);
+    $decoder.set-data($data);
+    $decoder.decode();
 }

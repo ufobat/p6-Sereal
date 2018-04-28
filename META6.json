@@ -9,10 +9,12 @@
   "name" : "Sereal",
   "perl" : "6.c",
   "provides" : {
-    "Sereal" : "lib/Sereal.pm6"
+    "Sereal" : "lib/Sereal.pm6",
+    "Sereal::Decoder" : "lib/Sereal/Decoder.pm6",
+    "Sereal::Header" : "lib/Sereal/Header.pm6"
   },
   "resources" : [ ],
-  "source-url" : "",
+  "source-url" : "https://github.com/ufobat/p6-Sereal.git",
   "tags" : [ ],
   "test-depends" : [ ],
   "version" : "0.0.1"

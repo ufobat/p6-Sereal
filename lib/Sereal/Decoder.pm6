@@ -9,29 +9,76 @@ has Int $!protocol-version;
 has Int $!encoding;
 has Int $!user-header-position;
 has Int $!user-header-size;
+has Int $!track-offset;
 
 # configuration
 has Bool $!refuse-snappy = False;
 
-# TODO: just a blob of bytes
-method decode(Blob[uint8] $blob) {
-    self!set-data($blob);
+method decode() {
     self!parse-header();
+
+    if $!encoding == 1|2 {
+        self!uncompress-snappy();
+    } elsif $!encoding = 3 {
+        self!uncompress-zlib();
+    } elsif $!encoding = 4 {
+        self!uncompress-zstd();
+    }
+
+    # offsets start with 1
+    $!track-offset = $!protocol-version == 1
+    ?? $!position + 1 # offsets relative to the the document header
+    !! 1;             # offsets relative to the start of the body
 }
 
-method !set-data($blob) {
+method decode-header() {
+    self!parse-header();
+
+    unless $!user-header-size > 0 {
+        die "Sereal user header not present";
+    }
+
+    my Int $original-position = $!position;
+    my Int $original-size = $!size;
+
+    $!position = $!user-header-position;
+    $!size = $!user-header-position + $!user-header-size;
+    return self!read-single-value();
+
+    LEAVE {
+        # restore original values
+        $!size = $original-size;
+        $!position = $original-position;
+        # TODO: reset tracked
+    }
+}
+
+method set-data(Blob[uint8] $blob) {
+    # set data and known values
     $!data     = $blob;
     $!size     = $blob.elems;
     $!position = 0;
+
+    # reset all parsed information
+    $!protocol-version = Int;
+    $!encoding = Int;
+    $!user-header-position = Int;
+    $!user-header-size = Int;
 }
 
 method !parse-header() {
+    return if $!user-header-size.defined;
+
     self!check-header();
     self!check-proto-and-flags();
     self!check-header-suffix();
 }
 
 method !check-header() {
+    unless $!data.defined {
+        die 'No data set';
+    }
+
     if $!size - $!position < 4 {
         die 'Invalid Sereal header: too few bytes';
     }
@@ -99,3 +146,10 @@ method !read-varint(--> Int) {
     $uv = $uv +| $b +< $lshift;
     return $uv;
 }
+
+method !read-single-value() { ... }
+
+# uncompression
+method !uncompress-snappy() { X::NYI.new(feature => 'snappy compression').throw }
+method !uncompress-zstd() { X::NYI.new(feature => 'zstd compression').throw }
+method !uncompress-zlib() { X::NYI.new(feature => 'zlib compression').throw }

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ufobat/p6-Sereal.svg?branch=master)](https://travis-ci.org/ufobat/p6-Sereal)
+
 NAME
 ====
 
