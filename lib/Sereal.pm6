@@ -29,9 +29,11 @@ This library is free software; you can redistribute it and/or modify it under th
 
 use Sereal::Decoder;
 
+our $DEBUG = False;
+
 sub decode_file($file) is export {
     my $data = $file.IO.slurp(:bin);
-    my $decoder = Sereal::Decoder.new();
+    my $decoder = Sereal::Decoder.new( :debug($DEBUG) );
     $decoder.set-data($data);
     $decoder.decode();
 }

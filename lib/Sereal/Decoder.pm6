@@ -14,8 +14,13 @@ has Int $!track-offset;
 has Hash %!tracked;
 
 # configuration
-has Bool $!refuse-snappy = False;
-has Bool $!debug = True;
+has Bool $!refuse-snappy;
+has Bool $!debug;
+
+submethod BUILD(Bool :$debug = False, Bool :$refuse-snappy = False) {
+    $!debug = $debug;
+    $!refuse-snappy = $refuse-snappy
+}
 
 method decode() {
     self!parse-header();
