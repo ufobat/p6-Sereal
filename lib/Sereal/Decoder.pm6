@@ -1,6 +1,7 @@
 unit class Sereal::Decoder;
 
 use Sereal::Header;
+use NativeCall;
 
 has Blob $!data;
 has Int $!position;
@@ -10,9 +11,11 @@ has Int $!encoding;
 has Int $!user-header-position;
 has Int $!user-header-size;
 has Int $!track-offset;
+has Hash %!tracked;
 
 # configuration
 has Bool $!refuse-snappy = False;
+has Bool $!debug = True;
 
 method decode() {
     self!parse-header();
@@ -66,6 +69,11 @@ method set-data(Blob[uint8] $blob) {
     $!encoding = Int;
     $!user-header-position = Int;
     $!user-header-size = Int;
+    %!tracked = Hash.new;
+}
+
+method !debug(Str:D $msg) {
+    say $msg if $!debug;
 }
 
 method !parse-header() {
@@ -149,7 +157,143 @@ method !read-varint(--> Int) {
     return $uv;
 }
 
-method !read-single-value() { ... }
+method !read-zigzag(--> Int) {
+    my $i = self!read-varint();
+    my $z = floor( ($i+1) / 2);
+    $z = $z * -1 unless $i %% 2;
+    self!debug("read-zigzag() --> $z");
+    return $z
+}
+
+method !read-float(--> Num) {
+    my $blob = $!data.subbuf($!position, 4);
+    $!position += 4;
+    my Num $float = nativecast(Pointer[num32], $blob).deref;
+
+    self!debug("read-float() --> $float");
+    return $float;
+}
+
+method !read-arrayref(Int $elems) {
+    self!debug("read-arrayref()");
+    my @array;
+    for 0..^$elems {
+        my $val = self!read-single-value();
+        @array.push: $val;
+    }
+    self!debug("read-arrayref() --> { @array.perl }");
+    return @array
+}
+
+method !read-refn(Int $track) {
+    self!debug("read-refn()");
+    my $thing = self!read-single-value();
+    self!debug("read-refn() --> { $thing.perl }");
+    self!set-tracked($track, $thing) if $track;
+    return $thing;
+}
+
+method !read-refp(Int $track) {
+    my $offset = self!read-varint();
+    return self!get-tracked($track) if $track;
+}
+
+method !read-hash(Int $track, Int:D $elems) {
+    self!debug("read-hash()");
+    my %hash;
+    for 0..^$elems {
+        my $str = self!read-string();
+        my $val = self!read-single-value();
+        %hash{$str} = $val;
+    }
+
+    self!set-tracked($track, %hash) if $track;
+    self!debug("read-hash() --> { %hash.perl }");
+    return %hash;
+}
+
+method !read-utf8(--> Str:D) {
+    my Int $length = self!read-varint();
+    my $val = self!read-binary($length);
+    return $val.encode('utf-8');
+}
+
+method !read-binary(Int:D $length --> Blob:D) {
+    my $val = $!data.subbuf($!position, $length);
+    $!position += $length;
+    return $val;
+}
+
+method !read-string-copy() { ... }
+
+method !read-string(--> Str:D) {
+    self!debug("read-string()");
+    my Str $out;
+    my $tag = $!data[$!position++];
+    if $tag +& SRL_HDR_SHORT_BINARY {
+        my $length = $tag +& 31; # lower 5 bits
+        $out = self!read-binary($length).decode('latin1');
+
+    } elsif $tag == SRL_HDR_BINARY {
+        my Int $length = self!read-varint();
+        $out = self!read-binary($length).decode('latin1');
+    } elsif $tag == SRL_HDR_STR_UTF8 {
+        $out = self!read-utf8();
+    } elsif $tag == SRL_HDR_COPY {
+        $out = self!read-string-copy();
+    } else {
+        die "Tag $tag is not a String";
+    }
+    return $out;
+}
+
+method !read-single-value() {
+    self!debug('read-single-value()');
+    die "Unexpected end of data at byte $!position" if $!size <= $!position;
+
+    my Int $tag = $!data[$!position++];
+    my Int $track;
+    if $tag +& SRL_HDR_TRACK_FLAG {
+        # highest bit is set
+        $track = $!position;
+        $tag = $tag +&  +^SRL_HDR_TRACK_FLAG;
+        self!debug("Track this value at $track");
+    }
+
+
+    # keep the oder accoring to the constant value
+    my $out;
+    if $tag <= SRL_HDR_POS_HIGH {
+        $out = $tag;
+        self!debug("read-single-value() - POS_HIGH - $out");
+    } elsif $tag <= SRL_HDR_NEG_HIGH {
+        $out = $tag - 32;
+        self!debug("read-single-value() - NEG_HIGH - $out");
+    } elsif $tag == SRL_HDR_VARINT {
+        $out = self!read-varint();
+        self!debug("read-single-value() - VARINT - $out");
+    } elsif $tag == SRL_HDR_ZIGZAG {
+        $out = self!read-zigzag();
+    } elsif $tag == SRL_HDR_FLOAT {
+        $out = self!read-float();
+    } elsif $tag == SRL_HDR_REFN {
+        $out = self!read-refn($track);
+    } elsif $tag == SRL_HDR_REFP {
+        $out = self!read-refp($track);
+    } elsif $tag == SRL_HDR_HASH {
+        my $elems = self!read-varint();
+        $out = self!read-hash($track, $elems);
+    } elsif $tag +& SRL_HDR_ARRAYREF {
+        # number of elments is stored in the lower nibble
+        my $elems = $tag +& 0x0F;
+        $out = self!read-arrayref($elems);
+    } else {
+        die "Sereal Tag $tag not supported";
+    }
+
+    self!debug("read-single-value() --> { $out.perl }");
+    return $out;
+}
 
 # uncompression
 method !uncompress-snappy() { X::NYI.new(feature => 'snappy compression').throw }
@@ -167,4 +311,16 @@ method !uncompress-zlib() {
     # position did not change
     $!data.subbuf-rw($!position);
     $!size = $!data.elems;
+}
+
+# tracking values
+method !get-tracked(Int:D $offset) {
+    die "Getting tracked item with offset $offset which is not tracked"
+    unless %!tracked{ $offset }:exists;
+
+    return %!tracked{ $offset };
+}
+
+method !set-tracked(Int:D $offset, Mu $thingy) {
+    X::NYI.new(feature => 'set-tracked').throw;
 }

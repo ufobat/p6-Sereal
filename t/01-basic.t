@@ -3,7 +3,8 @@ use Test;
 use Sereal;
 
 lives-ok {
-    decode_file('sereal.example')
+    my $data = decode_file('sereal.example');
+    diag $data.perl;
 }
 
 done-testing;
