@@ -19,9 +19,9 @@ method decode() {
 
     if $!encoding == 1|2 {
         self!uncompress-snappy();
-    } elsif $!encoding = 3 {
+    } elsif $!encoding == 3 {
         self!uncompress-zlib();
-    } elsif $!encoding = 4 {
+    } elsif $!encoding == 4 {
         self!uncompress-zstd();
     }
 
@@ -29,6 +29,8 @@ method decode() {
     $!track-offset = $!protocol-version == 1
     ?? $!position + 1 # offsets relative to the the document header
     !! 1;             # offsets relative to the start of the body
+
+    return self!read-single-value();
 }
 
 method decode-header() {
@@ -152,4 +154,17 @@ method !read-single-value() { ... }
 # uncompression
 method !uncompress-snappy() { X::NYI.new(feature => 'snappy compression').throw }
 method !uncompress-zstd() { X::NYI.new(feature => 'zstd compression').throw }
-method !uncompress-zlib() { X::NYI.new(feature => 'zlib compression').throw }
+method !uncompress-zlib() {
+    X::NYI.new(feature => 'zlib compression').throw;
+    require Compress::Zlib;
+
+    # read-varint updates $!position
+    my Int $uncompressed-length = self!read-varint();
+    my Int $compressed-length = self!read-varint();
+    my Blob $uncompressd = Compress::Zlib::uncompress( $!data.subbuf($!position) );
+
+    # update date and length
+    # position did not change
+    $!data.subbuf-rw($!position);
+    $!size = $!data.elems;
+}
