@@ -1,6 +1,8 @@
 unit class Sereal::Decoder;
 
 use Sereal::Header;
+use Sereal::ObjectMapper;
+use Sereal::DefaultObjectMapper;
 use NativeCall;
 
 has Blob $!data;
@@ -14,13 +16,9 @@ has Int $!track-offset;
 has Hash %!tracked;
 
 # configuration
-has Bool $!refuse-snappy;
-has Bool $!debug;
-
-submethod BUILD(Bool :$debug = False, Bool :$refuse-snappy = False) {
-    $!debug = $debug;
-    $!refuse-snappy = $refuse-snappy
-}
+has Bool $.refuse-snappy = False;
+has Bool $.debug = False;
+has Sereal::ObjectMapper $.object-mapper = Sereal::DefaultObjectMapper.new();
 
 method decode() {
     self!parse-header();
@@ -276,6 +274,25 @@ method !read-string(--> Str:D) {
     return $out;
 }
 
+method !read-object {
+    self!debug('read-object()');
+    my $classname = self!read-string();
+    my $object = self!read-object-by-name($classname);
+    return $object;
+}
+method !read-objectv {
+    self!debug('read-objectv()');
+    my $classname = self!read-string-copy();
+    my $object = self!read-object-by-name($classname);
+    return $object;
+}
+method !read-object-by-name(Str:D $name) {
+    my $data = self!read-single-value();
+    my $object = $!object-mapper.build-object($name, $data);
+    return $object;
+}
+
+
 method !read-single-value() {
     self!debug('read-single-value()');
     die "Unexpected end of data at byte $!position" if $!size <= $!position;
@@ -326,6 +343,11 @@ method !read-single-value() {
     } elsif $tag == SRL_HDR_ARRAY {
         my $elems = self!read-varint();
         $out = self!read-arrayref($elems);
+    } elsif $tag == SRL_HDR_OBJECT {
+        $out = self!read-object();
+    } elsif $tag == SRL_HDR_OBJECTV {
+        $out = self!read-objectv();
+
     } elsif $tag +& SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;

@@ -17,7 +17,8 @@ our constant SRL_HDR_REFN         is export = 40;
 our constant SRL_HDR_REFP         is export = 41;
 our constant SRL_HDR_HASH         is export = 42;
 our constant SRL_HDR_ARRAY        is export = 43;
-
+our constant SRL_HDR_OBJECT       is export = 44;
+our constant SRL_HDR_OBJECTV      is export = 45;
 our constant SRL_HDR_COPY         is export = 47;
 
 our constant SRL_HDR_ARRAYREF     is export = 64;

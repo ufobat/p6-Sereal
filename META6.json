@@ -11,7 +11,9 @@
   "provides" : {
     "Sereal" : "lib/Sereal.pm6",
     "Sereal::Decoder" : "lib/Sereal/Decoder.pm6",
-    "Sereal::Header" : "lib/Sereal/Header.pm6"
+    "Sereal::DefaultObjectMapper" : "lib/Sereal/DefaultObjectMapper.pm6",
+    "Sereal::Header" : "lib/Sereal/Header.pm6",
+    "Sereal::ObjectMapper" : "lib/Sereal/ObjectMapper.pm6"
   },
   "resources" : [ ],
   "source-url" : "https://github.com/ufobat/p6-Sereal.git",
