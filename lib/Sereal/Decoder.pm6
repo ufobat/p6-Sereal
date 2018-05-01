@@ -174,9 +174,22 @@ method !read-float(--> Num) {
     my $blob = $!data.subbuf($!position, 4);
     $!position += 4;
     my Num $float = nativecast(Pointer[num32], $blob).deref;
-
     self!debug("read-float() --> $float");
     return $float;
+}
+
+method !read-double(--> Num) {
+    my $blob = $!data.subbuf($!position, 8);
+    $!position += 8;
+    my Num $double = nativecast(Pointer[num64], $blob).deref;
+    self!debug("read-double() --> $double");
+    return $double;
+}
+
+method !read-long-double(--> Num) {
+    X::NYI.new(feature => 'read-long-double').throw;
+    # it sesms that there is no num128
+    # so we need to implement the IEEE manually
 }
 
 method !read-arrayref(Int $elems) {
@@ -219,14 +232,27 @@ method !read-hash(Int $track, Int:D $elems) {
 
 method !read-utf8(--> Str:D) {
     my Int $length = self!read-varint();
-    my $val = self!read-binary($length);
+    my $val = self!read-blob($length);
     return $val.encode('utf-8');
 }
 
-method !read-binary(Int:D $length --> Blob:D) {
+method !read-blob(Int:D $length --> Blob:D) {
     my $val = $!data.subbuf($!position, $length);
     $!position += $length;
     return $val;
+}
+
+method !read-binary(--> Blob) {
+    my Int $length = self!read-varint();
+    my $out = self!read-blob($length);
+    self!debug("read-binary() --> { $out.perl }");
+    return $out;
+}
+
+method !read-short-binary(Int:D $length--> Blob) {
+    my $out = self!read-blob($length);
+    self!debug("read-short-binary() --> { $out.perl }");
+    return $out;
 }
 
 method !read-string-copy() { ... }
@@ -237,11 +263,9 @@ method !read-string(--> Str:D) {
     my $tag = $!data[$!position++];
     if $tag +& SRL_HDR_SHORT_BINARY {
         my $length = $tag +& 31; # lower 5 bits
-        $out = self!read-binary($length).decode('latin1');
-
+        $out = self!read-short-binary($length).decode('latin1');
     } elsif $tag == SRL_HDR_BINARY {
-        my Int $length = self!read-varint();
-        $out = self!read-binary($length).decode('latin1');
+        $out = self!read-binary().decode('latin1');
     } elsif $tag == SRL_HDR_STR_UTF8 {
         $out = self!read-utf8();
     } elsif $tag == SRL_HDR_COPY {
@@ -281,6 +305,17 @@ method !read-single-value() {
         $out = self!read-zigzag();
     } elsif $tag == SRL_HDR_FLOAT {
         $out = self!read-float();
+    } elsif $tag == SRL_HDR_DOUBLE {
+        $out = self!read-double();
+    } elsif $tag == SRL_HDR_LONG_DOUBLE {
+        $out = self!read-long-double();
+    } elsif $tag == SRL_HDR_UNDEF {
+        $out = Nil;
+        self!debug("read-single-value() - UNDEF - Nil");
+    } elsif $tag == SRL_HDR_BINARY {
+        $out = self!read-binary();
+    } elsif $tag == SRL_HDR_STR_UTF8 {
+        $out = self!read-utf8();
     } elsif $tag == SRL_HDR_REFN {
         $out = self!read-refn($track);
     } elsif $tag == SRL_HDR_REFP {
@@ -288,6 +323,9 @@ method !read-single-value() {
     } elsif $tag == SRL_HDR_HASH {
         my $elems = self!read-varint();
         $out = self!read-hash($track, $elems);
+    } elsif $tag == SRL_HDR_ARRAY {
+        my $elems = self!read-varint();
+        $out = self!read-arrayref($elems);
     } elsif $tag +& SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
