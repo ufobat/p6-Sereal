@@ -210,8 +210,15 @@ method !read-refn(Int $track) {
 }
 
 method !read-refp(Int $track) {
+    self!debug("read-refp()");
     my $offset = self!read-varint();
-    return self!get-tracked($track) if $track;
+    return self!get-tracked($offset);
+}
+
+method !read-alias() {
+    self!debug("read-alias()");
+    my $offset = self!read-varint();
+    return self!get-tracked($offset);
 }
 
 method !read-hash(Int $track, Int:D $elems) {
@@ -292,6 +299,30 @@ method !read-object-by-name(Str:D $name) {
     return $object;
 }
 
+method !read-copy() {
+    self!debug('read-copy()');
+    # read something that has already been decoded
+    my $pos = self!read-varint();
+    my $current_pos = $!position;
+    $!position = $pos;
+    my $val = self!read-single-value();
+    $!position = $current_pos;
+    return $val;
+}
+
+method !read-weaken() {
+    self!debug('read-weaken()');
+    # next this must be a reference - we're just need to weaken it
+    my $val = self!read-single-value();
+    return $val;
+}
+
+method !read-regexp() {
+    self!debug('read-regexp()');
+    my $pattern = self!read-single-value();
+    my $modifiers = self!read-single-value();
+    X::NYI.new(feature => 'read-regexp').throw;
+}
 
 method !read-single-value() {
     self!debug('read-single-value()');
@@ -336,7 +367,7 @@ method !read-single-value() {
     } elsif $tag == SRL_HDR_REFN {
         $out = self!read-refn($track);
     } elsif $tag == SRL_HDR_REFP {
-        $out = self!read-refp($track);
+        $out = self!read-refp();
     } elsif $tag == SRL_HDR_HASH {
         my $elems = self!read-varint();
         $out = self!read-hash($track, $elems);
@@ -347,7 +378,14 @@ method !read-single-value() {
         $out = self!read-object();
     } elsif $tag == SRL_HDR_OBJECTV {
         $out = self!read-objectv();
-
+    } elsif $tag == SRL_HDR_ALIAS {
+        $out = self!read-alias();
+    } elsif $tag == SRL_HDR_COPY {
+        $out = self!read-copy();
+    } elsif $tag == SRL_HDR_WEAKEN {
+        $out = self!read-weaken();
+    } elsif $tag == SRL_HDR_REGEXP {
+        $out = self!read-regexp();
     } elsif $tag +& SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
