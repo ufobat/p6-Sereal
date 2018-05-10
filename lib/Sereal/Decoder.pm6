@@ -299,6 +299,25 @@ method !read-object-by-name(Str:D $name) {
     return $object;
 }
 
+method !read-object-freeze() {
+    self!debug('read-object-freeze()');
+    my $classname = self!read-string();
+    my $object = self!read-object-via-thaw($classname);
+    return $object;
+}
+method !read-objectv-freeze() {
+    self!debug('read-objectv-freeze()');
+    my $classname = self!read-string-copy();
+    my $object = self!read-object-via-thaw($classname);
+    return $object;
+}
+method !read-object-via-thaw(Str:D $name) {
+    my $data = self!read-single-value();
+    require ::($name);
+    my $object = ::($name).THAW($data);
+    return $object
+}
+
 method !read-copy() {
     self!debug('read-copy()');
     # read something that has already been decoded
@@ -386,6 +405,10 @@ method !read-single-value() {
         $out = self!read-weaken();
     } elsif $tag == SRL_HDR_REGEXP {
         $out = self!read-regexp();
+    } elsif $tag == SRL_HDR_OBJECT_FREEZE {
+        $out = self!read-object-freeze();
+    } elsif $tag == SRL_HDR_OBJECTV_FREEZE {
+        $out = self!read-objectv-freeze();
     } elsif $tag +& SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
