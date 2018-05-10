@@ -409,6 +409,20 @@ method !read-single-value() {
         $out = self!read-object-freeze();
     } elsif $tag == SRL_HDR_OBJECTV_FREEZE {
         $out = self!read-objectv-freeze();
+    } elsif SRL_HDR_RESERVED_LOW <= $tag <= SRL_HDR_RESERVED_HIGH {
+        # ignore
+    } elsif SRL_HDR_CANONICAL_UNDEF == $tag {
+        $out = Nil;
+        self!debug("read-single-value() - CANONICAL_UNDEF - Nil");
+    } elsif SRL_HDR_FALSE == $tag {
+        $out = False;
+        self!debug("read-single-value() - FALSE - False");
+    } elsif SRL_HDR_TRUE == $tag {
+        $out = True;
+        self!debug("read-single-value() - TRUE - True");
+    } elsif SRL_HDR_PAD == $tag {
+        self!debug("read-single-value() - PAD - ignore");
+        $out = self!read-single-value();
     } elsif $tag +& SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
