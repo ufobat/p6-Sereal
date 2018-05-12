@@ -236,9 +236,10 @@ method !read-hash(Int $track, Int:D $elems) {
 }
 
 method !read-utf8(--> Str:D) {
+    self!debug("read-utf8()");
     my Int $length = self!read-varint();
     my $val = self!read-blob($length);
-    return $val.encode('utf-8');
+    return $val.decode('utf-8');
 }
 
 method !read-blob(Int:D $length --> Blob:D) {
@@ -356,6 +357,8 @@ method !read-single-value() {
         self!debug("Track this value at $track");
     }
 
+    self!debug('read-single-value() - TAG: ' ~ $tag);
+
 
     # keep the oder accoring to the constant value
     my $out;
@@ -423,10 +426,18 @@ method !read-single-value() {
     } elsif SRL_HDR_PAD == $tag {
         self!debug("read-single-value() - PAD - ignore");
         $out = self!read-single-value();
-    } elsif $tag +& SRL_HDR_ARRAYREF {
+    } elsif $tag < SRL_HDR_ARRAYREF {
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
         $out = self!read-arrayref($elems);
+    } elsif $tag < SRL_HDR_HASHREF {
+        # number of elments is stored in the lower nibble
+        my $elems = $tag +& 0x0F;
+        $out = self!read-hash($elems);
+    } elsif $tag <= SRL_HDR_SHORT_BINARY {
+        # number of elments is stored in the lower 5 bits!
+        my $elems = $tag +& 0x1F;
+        $out = self!read-short-binary($elems);
     } else {
         die "Sereal Tag $tag not supported";
     }

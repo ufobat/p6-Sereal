@@ -32,6 +32,7 @@ our constant SRL_HDR_FALSE           is export = 58;
 our constant SRL_HDR_TRUE            is export = 59;
 # not (yet) implemented
 our constant SRL_HDR_PAD             is export = 63;
-our constant SRL_HDR_ARRAYREF        is export = 64;
-our constant SRL_HDR_SHORT_BINARY    is export = 96;
+our constant SRL_HDR_ARRAYREF        is export = 79;
+our constant SRL_HDR_HASHREF         is export = 95;
+our constant SRL_HDR_SHORT_BINARY    is export = 127;
 our constant SRL_HDR_TRACK_FLAG      is export = 128;
