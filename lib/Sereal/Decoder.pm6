@@ -31,10 +31,9 @@ method decode() {
         self!uncompress-zstd();
     }
 
-    # offsets start with 1
     $!track-offset = $!protocol-version == 1
-    ?? $!position + 1 # offsets relative to the the document header
-    !! 1;             # offsets relative to the start of the body
+    ?? 0           # offsets relative to the start of the body
+    !! $!position; # offsets relative to the the document header
 
     return self!read-single-value();
 }
@@ -209,7 +208,7 @@ method !read-refn(Int $track) {
     return $thing;
 }
 
-method !read-refp(Int $track) {
+method !read-refp() {
     self!debug("read-refp()");
     my $offset = self!read-varint();
     return self!get-tracked($offset);
@@ -353,12 +352,12 @@ method !read-single-value() {
     if $tag +& SRL_HDR_TRACK_FLAG {
         # highest bit is set
         $track = $!position;
+        self!debug("Track this value at $track - byte: $tag");
+        # remove track flag
         $tag = $tag +&  +^SRL_HDR_TRACK_FLAG;
-        self!debug("Track this value at $track");
     }
 
     self!debug('read-single-value() - TAG: ' ~ $tag);
-
 
     # keep the oder accoring to the constant value
     my $out;
@@ -472,6 +471,7 @@ method !get-tracked(Int:D $offset) {
     return %!tracked{ $offset };
 }
 
-method !set-tracked(Int:D $offset, Mu $thingy) {
-    X::NYI.new(feature => 'set-tracked').throw;
+method !set-tracked(Int:D $offset is copy, Mu $thingy) {
+    $offset -= $!track-offset;
+    %!tracked{$offset} = $thingy;
 }
