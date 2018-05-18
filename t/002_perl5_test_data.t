@@ -8,7 +8,11 @@ my $data-dir = $?FILE.IO.parent.child('data');
 
 ok $data-dir.e, 'data-dir exists';
 
-my %expectations = (
+my %hash = (
+    a => 1,
+    b => 2,
+);
+my @expectations = (
     '031_pos_int'      => 0,
     '032_pos_int'      => 16,
     '031_neg_int'      => -1,
@@ -21,16 +25,20 @@ my %expectations = (
     '031_short_binary' => Buf[uint8].new( 'random binary data'.encode('latin-1')),
     '031_utf8'         => 'random text with ümläuts', # because of the umlauts it will get the utf8
     '031_arrayref'     => [0,1,2],
-    '031_hashref'      => { a => 1, b => 2},
+    '031_hashref'      => %hash,
+    '031_track_flag'   => [%hash, %hash],
+#    '011_track_flag'   => [%hash, %hash], # as version 1 because track flag is handled differently
 );
 
-for %expectations.keys -> $name {
+for @expectations {
+    my $name = .key;
+    my $expected = .value;
     my $file = $data-dir.child($name);
     if $file.e {
         my $data = decode_file($file);
         is-deeply(
             $data,
-            %expectations{$name},
+            $expected,
             "testing $file"
         );
     } else {
