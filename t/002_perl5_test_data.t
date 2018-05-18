@@ -27,7 +27,7 @@ my @expectations = (
     '031_arrayref'     => [0,1,2],
     '031_hashref'      => %hash,
     '031_track_flag'   => [%hash, %hash],
-#    '011_track_flag'   => [%hash, %hash], # as version 1 because track flag is handled differently
+    '011_track_flag'   => [%hash, %hash], # as version 1 because track flag is handled differently
 );
 
 for @expectations {

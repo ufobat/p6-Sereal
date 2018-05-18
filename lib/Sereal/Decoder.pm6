@@ -32,7 +32,7 @@ method decode() {
     }
 
     $!track-offset = $!protocol-version == 1
-    ?? 0           # offsets relative to the start of the body
+    ?? 1           # offsets relative to the start of the body
     !! $!position; # offsets relative to the the document header
 
     return self!read-single-value();

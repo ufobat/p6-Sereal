@@ -47,8 +47,8 @@ my %data = (
     '031_arrayref'     => [0,1,2],
     '031_hashref'      => $hash,
     '031_track_flag'   => [$hash, $hash],
-    '031_track_weaken' => [$hash, $weak],
     '011_track_flag'   => [$hash, $hash], # as version 1 because track flag is handled differently
+    '031_track_weaken' => [$hash, $weak],
 );
 
 # write test data
