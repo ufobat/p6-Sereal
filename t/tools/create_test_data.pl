@@ -35,6 +35,7 @@ my $hash = {a => 1, b => 2};
 # 41 - SLR_HDR_REFP
 # 42 - SLR_HDR_HASH
 # 43 - SLR_HDR_ARRAY
+# 49 - SRL_HDR_REGEXP
 # 114 - SRL_HDR_SHORT_BINARY
 
 # MISSING:
@@ -46,7 +47,6 @@ my $hash = {a => 1, b => 2};
 # 48 - SRL_HDR_WEAKEN
 # my $weak = $hash;
 # weaken($weak);
-# 49 - SRL_HDR_REGEXP
 # 50 - SRL_HDR_OBJECT_FREEZE
 # 51 - SRL_HDR_OBJECTV_FREEZE
 # 57 - SRL_HDR_CANONICAL_UNDEF

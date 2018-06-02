@@ -15,9 +15,39 @@ has Int $!user-header-size;
 has Int $!track-offset;
 has Hash %!tracked;
 
+=head1 Configuration
+
+=begin item
+refuse-snappy = c<False>
+
+Dies if snappy needs to be decoded.
+=end item
+
+=begin item
+refuse-regexp = C<False>
+
+Dies if a regexp needs to be decoded. Regexp uses C<EVAL> so it is probably better to disable thiis.
+=end item
+
+=begin item
+ignore-regexp-object-mapping = C<True>
+
+Suprisingly when you decode a regexp it is wrapped inside a object with the class 'Regexp'. Setting this option to True means that you do not invoke the C<object-mapper> which should create an object of the class C<Regexp> but you create a regexp instead.
+
+See L<object-mapper>.
+=end item
+
+=begin item
+object-mapper = C<Sereal::DefaultObjectMapper.new()>;
+
+The object mapper is a factory for creating objects. There must be a method called C<build-object($class-name, $data)>
+=end item
+
 # configuration
 has Bool $.refuse-snappy = False;
 has Bool $.debug = False;
+has Bool $.refuse-regexp = False;
+has Bool $.ignore-regexp-object-mapping = True;
 has Sereal::ObjectMapper $.object-mapper = Sereal::DefaultObjectMapper.new();
 
 method decode() {
@@ -294,8 +324,11 @@ method !read-objectv {
     return $object;
 }
 method !read-object-by-name(Str:D $name) {
+    self!debug('read-object-by-name(' ~ $name ~ ')');
     my $data = self!read-single-value();
-    my $object = $!object-mapper.build-object($name, $data);
+    my $object = $.ignore-regexp-object-mapping && $name ~~ 'Regexp'
+    ?? $data
+    !! $!object-mapper.build-object($name, $data);
     return $object;
 }
 
@@ -338,9 +371,15 @@ method !read-weaken() {
 
 method !read-regexp() {
     self!debug('read-regexp()');
+    die 'need to process regexp but refuse-regexp is set to true' if $.refuse-regexp;
+
     my $pattern = self!read-single-value();
     my $modifiers = self!read-single-value();
-    X::NYI.new(feature => 'read-regexp').throw;
+    my $regex-code = 'rx :Perl5 :' ~ $modifiers.decode() ~ '/' ~ $pattern.decode() ~ '/';
+
+    use MONKEY-SEE-NO-EVAL;
+    my $regex = EVAL $regex-code;
+    return $regex;
 }
 
 method !read-single-value() {
