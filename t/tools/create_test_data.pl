@@ -20,14 +20,42 @@ my $data_dir = File::Spec->catdir(@dirs);
 remove_tree($data_dir) if -e $data_dir;
 mkpath($data_dir,1);
 
-# MISSING:
-# SRL_HDR_FLOAT
-# SRL_HDR_LONG_DOUBLE
-
 # test data definition
 my $hash = {a => 1, b => 2};
-my $weak = $hash;
-weaken($weak);
+
+# CHECKED:
+# 0,1,2 - SRL_HDR_POS_HIGH
+# 31 - SRL_HDR_NEG_HIGH
+# 32 - SLR_HDR_VARINT
+# 33 - SLR_HDR_ZIGZAG
+# 35 - SLR_HDR_DOUBLE
+# 37 - SLR_HDR_UNDEF
+# 38 - SLR_HDR_BINARY
+# 40 - SLR_HDR_REFN
+# 41 - SLR_HDR_REFP
+# 42 - SLR_HDR_HASH
+# 43 - SLR_HDR_ARRAY
+# 114 - SRL_HDR_SHORT_BINARY
+
+# MISSING:
+# 34 - SRL_HDR_FLOAT
+# 36 - SRL_HDR_LONG_DOUBLE
+# 48 - SRL_HDR_WEAKEN - see https://github.com/Sereal/Sereal/issues/184
+# 46 - SRL_HDR_ALIAS
+# 47 - SRL_HDR_COPY
+# 48 - SRL_HDR_WEAKEN
+# my $weak = $hash;
+# weaken($weak);
+# 49 - SRL_HDR_REGEXP
+# 50 - SRL_HDR_OBJECT_FREEZE
+# 51 - SRL_HDR_OBJECTV_FREEZE
+# 57 - SRL_HDR_CANONICAL_UNDEF
+# 58 - SRL_HDR_FALSE
+# 59 - SRL_HDR_TRUE
+# 63 - SRL_HDR_PAD
+# SRL_HDR_ARRAYREF
+# SRL_HDR_HASHREF
+
 
 # name format for testcases
 # <compression><version><id>_<name>

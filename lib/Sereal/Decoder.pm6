@@ -426,15 +426,18 @@ method !read-single-value() {
         self!debug("read-single-value() - PAD - ignore");
         $out = self!read-single-value();
     } elsif $tag < SRL_HDR_ARRAYREF {
+        self!debug("read-single-value() - ARRAYREF");
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
         $out = self!read-arrayref($elems);
     } elsif $tag < SRL_HDR_HASHREF {
+        self!debug("read-single-value() - HASHREF");
         # number of elments is stored in the lower nibble
         my $elems = $tag +& 0x0F;
         $out = self!read-hash($elems);
     } elsif $tag <= SRL_HDR_SHORT_BINARY {
         # number of elments is stored in the lower 5 bits!
+        self!debug("read-single-value() - SHORT BINARY");
         my $elems = $tag +& 0x1F;
         $out = self!read-short-binary($elems);
     } else {
