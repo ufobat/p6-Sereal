@@ -41,10 +41,9 @@ my $hash = {a => 1, b => 2};
 # MISSING:
 # 34 - SRL_HDR_FLOAT
 # 36 - SRL_HDR_LONG_DOUBLE
-# 48 - SRL_HDR_WEAKEN - see https://github.com/Sereal/Sereal/issues/184
 # 46 - SRL_HDR_ALIAS
 # 47 - SRL_HDR_COPY
-# 48 - SRL_HDR_WEAKEN
+# 48 - SRL_HDR_WEAKEN - see https://github.com/Sereal/Sereal/issues/184
 # my $weak = $hash;
 # weaken($weak);
 # 50 - SRL_HDR_OBJECT_FREEZE
