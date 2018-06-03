@@ -36,6 +36,9 @@ my $hash = {a => 1, b => 2};
 # 42 - SLR_HDR_HASH
 # 43 - SLR_HDR_ARRAY
 # 49 - SRL_HDR_REGEXP
+# 57 - SRL_HDR_CANONICAL_UNDEF
+# 58 - SRL_HDR_FALSE
+# 59 - SRL_HDR_TRUE
 # 114 - SRL_HDR_SHORT_BINARY
 
 # MISSING:
@@ -48,9 +51,6 @@ my $weak = $hash;
 weaken($weak);
 # 50 - SRL_HDR_OBJECT_FREEZE
 # 51 - SRL_HDR_OBJECTV_FREEZE
-# 57 - SRL_HDR_CANONICAL_UNDEF
-# 58 - SRL_HDR_FALSE
-# 59 - SRL_HDR_TRUE
 # 63 - SRL_HDR_PAD
 # SRL_HDR_ARRAYREF
 # SRL_HDR_HASHREF
@@ -77,6 +77,8 @@ my %data = (
     '011_track_flag'      => [$hash, $hash], # as version 1 because track flag is handled differently
     '031_track_weaken'    => [$hash, $weak],
     '031_canonical_undef' => 'this will not be used - special handling',
+    '031_true'            => 'this will not be used - special handling',
+    '031_false'           => 'this will not be used - special handling',
 );
 
 # write test data
@@ -89,6 +91,10 @@ foreach my $name (keys %data) {
     # special case handling
     if ($name eq '031_canonical_undef') {
         $encoded = encode_canonical_undef();
+    } elsif ($name eq '031_true') {
+        $encoded = encode_bool(1);
+    } elsif ($name eq '031_false') {
+        $encoded = encode_bool(0);
     } else {
         $encoded = encode_sereal($data, $compress, $protocol_version);
     }
@@ -97,12 +103,25 @@ foreach my $name (keys %data) {
     write_file($file, $encoded);
 }
 
+# pl_sv_undef
 sub encode_canonical_undef {
     my $encoder = Sereal::Encoder->new({
         compress => Sereal::Encoder::SRL_UNCOMPRESSED,
         procotol_version => 3,
     });
     return $encoder->encode(undef);
+}
+
+# pl_sv_no and pl_sv_yes
+sub encode_bool {
+    my $bool = shift;
+    my $encoder = Sereal::Encoder->new({
+        compress => Sereal::Encoder::SRL_UNCOMPRESSED,
+        procotol_version => 3,
+    });
+    return $bool
+        ? $encoder->encode(!0)
+        : $encoder->encode(!1)
 }
 
 sub encode_sereal {

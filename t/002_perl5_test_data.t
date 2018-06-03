@@ -4,7 +4,7 @@ use Sereal;
 
 my $data-dir = $?FILE.IO.parent.child('data');
 
-$Sereal::DEBUG = True;
+# $Sereal::DEBUG = True;
 
 ok $data-dir.e, 'data-dir exists';
 
@@ -30,6 +30,8 @@ my @expectations = (
     '011_track_flag'      => [%hash, %hash], # as version 1 because track flag is handled differently
     '031_regexp'          => rx :Perl5 :i/foo(?!bar)/,
     '031_canonical_undef' => Any,
+    '031_true'            => True,
+    '031_false'           => False,
 );
 
 for @expectations {
