@@ -48,6 +48,8 @@ has Bool $.refuse-snappy = False;
 has Bool $.debug = False;
 has Bool $.refuse-regexp = False;
 has Bool $.ignore-regexp-object-mapping = True;
+has $.undef-value = Any;
+has $.canonical-undef-value = Any;
 has Sereal::ObjectMapper $.object-mapper = Sereal::DefaultObjectMapper.new();
 
 method decode() {
@@ -418,8 +420,8 @@ method !read-single-value() {
     } elsif $tag == SRL_HDR_LONG_DOUBLE {
         $out = self!read-long-double();
     } elsif $tag == SRL_HDR_UNDEF {
-        $out = Nil;
-        self!debug("read-single-value() - UNDEF - Nil");
+        $out = $.undef-value;
+        self!debug("read-single-value() - UNDEF");
     } elsif $tag == SRL_HDR_BINARY {
         $out = self!read-binary();
     } elsif $tag == SRL_HDR_STR_UTF8 {
@@ -453,8 +455,8 @@ method !read-single-value() {
     } elsif SRL_HDR_RESERVED_LOW <= $tag <= SRL_HDR_RESERVED_HIGH {
         # ignore
     } elsif SRL_HDR_CANONICAL_UNDEF == $tag {
-        $out = Nil;
-        self!debug("read-single-value() - CANONICAL_UNDEF - Nil");
+        $out = $.canonical-undef-value;
+        self!debug("read-single-value() - CANONICAL_UNDEF");
     } elsif SRL_HDR_FALSE == $tag {
         $out = False;
         self!debug("read-single-value() - FALSE - False");
