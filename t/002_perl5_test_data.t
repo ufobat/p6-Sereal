@@ -12,6 +12,7 @@ my %hash = (
     a => 1,
     b => 2,
 );
+my @compress = ( Buf[uint8].new( ('0' x 5000).encode('latin-1') ) );
 my @expectations = (
     '031_pos_int'         => 0,
     '032_pos_int'         => 16,
@@ -32,6 +33,10 @@ my @expectations = (
     '031_canonical_undef' => Any,
     '031_true'            => True,
     '031_false'           => False,
+    # '111_compress'        => @compress,
+    # '131_compress'        => @compress,
+    '231_compress'        => @compress,
+    # '341_compress'        => @compress,
 );
 
 for @expectations {

@@ -22,6 +22,7 @@ mkpath($data_dir,1);
 
 # test data definition
 my $hash = {a => 1, b => 2};
+my $compress = [ '0' x 5000 ];
 
 # CHECKED:
 # 0,1,2 - SRL_HDR_POS_HIGH
@@ -79,6 +80,10 @@ my %data = (
     '031_canonical_undef' => 'this will not be used - special handling',
     '031_true'            => 'this will not be used - special handling',
     '031_false'           => 'this will not be used - special handling',
+    '111_compress'        => $compress, # snappy - just works with protocol 1
+    '131_compress'        => $compress, # incremental snappy
+    '231_compress'        => $compress, # zlib - just works with protocol 3
+    '341_compress'        => $compress, # zstandard - just works with protocol 4
 );
 
 # write test data
@@ -128,9 +133,11 @@ sub encode_sereal {
     my $data             = shift;
     my $compress         = shift // Sereal::Encoder::SRL_UNCOMPRESSED;
     my $protocol_version = shift // 3;
+    say "encoding with compression: $compress and version $protocol_version";
     my $encoder          = Sereal::Encoder->new({
         compress         => $compress,
         protocol_version => $protocol_version,
+        compress_threshold => 0,
     });
     return $encoder->encode($data);
 }

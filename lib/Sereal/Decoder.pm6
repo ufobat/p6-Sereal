@@ -490,20 +490,27 @@ method !read-single-value() {
 }
 
 # uncompression
-method !uncompress-snappy() { X::NYI.new(feature => 'snappy compression').throw }
+method !uncompress-snappy() {
+    require Compress::Snappy;
+    X::NYI.new(feature => 'snappy compression').throw
+}
 method !uncompress-zstd() { X::NYI.new(feature => 'zstd compression').throw }
 method !uncompress-zlib() {
-    X::NYI.new(feature => 'zlib compression').throw;
     require Compress::Zlib;
+    # X::NYI.new(feature => 'zlib compression').throw;
 
     # read-varint updates $!position
+    my $replace-position = $!position;
+
     my Int $uncompressed-length = self!read-varint();
     my Int $compressed-length = self!read-varint();
-    my Blob $uncompressd = Compress::Zlib::uncompress( $!data.subbuf($!position) );
+    my Blob $compressed =$!data.subbuf($!position, $compressed-length );
+    my Blob $uncompressed = Compress::Zlib::uncompress( $compressed );
 
     # update date and length
-    # position did not change
-    $!data.subbuf-rw($!position);
+    # position should not change
+    $!position = $replace-position;
+    $!data.subbuf-rw($replace-position, $compressed-length) = $uncompressed;
     $!size = $!data.elems;
 }
 
