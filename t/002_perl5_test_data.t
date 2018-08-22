@@ -33,8 +33,8 @@ my @expectations = (
     '031_canonical_undef' => Any,
     '031_true'            => True,
     '031_false'           => False,
-    # '111_compress'        => @compress,
-    # '131_compress'        => @compress,
+    '111_compress'        => @compress,
+    '131_compress'        => @compress,
     '231_compress'        => @compress,
     # '341_compress'        => @compress,
 );
